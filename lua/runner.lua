@@ -8,11 +8,12 @@ local handle_stdout = function(_, data)
 end
 
 local run_file = function(command)
-	vim.api.nvim_buf_set_lines(output, 0, -1, false, { "OUTPUT:" })
+	vim.api.nvim_buf_set_lines(output, 0, -1, false, { command, vim.api.nvim_buf_get_name(0) })
 	job = vim.fn.jobstart({ command, vim.api.nvim_buf_get_name(0) }, {
 		on_stdout = handle_stdout,
 		on_stderr = handle_stdout,
 	})
+	vim.api.nvim_set_current_win(win)
 end
 
 local create_window = function()
@@ -28,12 +29,12 @@ local create_window = function()
 		style = "minimal",
 	}
 	win = vim.api.nvim_open_win(buf, false, opts)
-	vim.api.nvim_set_current_win(win)
 	output = buf
 end
 
 local runners = {
 	["lua"] = { is_interpreted = true, command = "lua", run = run_file },
+	["javascript"] = { is_interpreted = true, command = "node", run = run_file },
 }
 
 M.run_current_cwd = function()
