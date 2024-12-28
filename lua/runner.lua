@@ -4,7 +4,7 @@ local output, job, win = 69, 420, 1337
 local handle_stdout = function(_, data)
 	if data then
 		print(data[1])
-		if data[1] == "[H[2J" then
+		if vim.trim(data[1]) == "[H[J" then
 			vim.api.nvim_buf_set_lines(output, 0, -1, false, { "OUTPUT: " })
 			return
 		end
