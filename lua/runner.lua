@@ -3,12 +3,17 @@ local output, job, win = 69, 420, 1337
 
 local handle_stdout = function(_, data)
 	if data then
+		print(data[1])
+		if data[1] == "[H[2J" then
+			vim.api.nvim_buf_set_lines(output, 0, -1, false, { "OUTPUT: " })
+			return
+		end
 		vim.api.nvim_buf_set_lines(output, -1, -1, false, data)
 	end
 end
 
 local run_file = function(command)
-	vim.api.nvim_buf_set_lines(output, 0, -1, false, { command, vim.api.nvim_buf_get_name(0) })
+	vim.api.nvim_buf_set_lines(output, 0, -1, false, { "OUTPUT: " })
 	job = vim.fn.jobstart({ command, vim.api.nvim_buf_get_name(0) }, {
 		on_stdout = handle_stdout,
 		on_stderr = handle_stdout,
@@ -17,16 +22,10 @@ local run_file = function(command)
 end
 
 local create_window = function()
-	local width, height = vim.api.nvim_win_get_width(0), vim.api.nvim_win_get_height(0)
 	local buf = vim.api.nvim_create_buf(false, true)
 	local opts = {
-		relative = "editor",
-		width = math.floor(width / 2),
-		height = height,
-		col = math.floor(width / 4),
-		row = 1,
-		anchor = "NW",
-		style = "minimal",
+		split = "right",
+		win = 0,
 	}
 	win = vim.api.nvim_open_win(buf, false, opts)
 	output = buf
