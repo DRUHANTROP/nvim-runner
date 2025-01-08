@@ -1,10 +1,12 @@
 local M = {}
+local kind = { SINGLE_FILE = 1, CWD = 2, CUSTOM = 3 }
+local target = { [1] = vim.fn.expand("%"), [2] = vim.fn.getcwd(), [3] = {} }
 local output, job, win = 69, 420, 1337
 
 local handle_stdout = function(_, data)
 	if data then
 		print(data[1])
-		if vim.trim(data[1]) == "[H[J" then
+		if vim.trim(data[1]) == "[H[2J" then
 			vim.api.nvim_buf_set_lines(output, 0, -1, false, { "OUTPUT: " })
 			return
 		end
@@ -12,9 +14,10 @@ local handle_stdout = function(_, data)
 	end
 end
 
-local run_file = function(command)
+local run = function(runner)
 	vim.api.nvim_buf_set_lines(output, 0, -1, false, { "OUTPUT: " })
-	job = vim.fn.jobstart({ command, vim.api.nvim_buf_get_name(0) }, {
+
+	job = vim.fn.jobstart({ runner.command, target[runner.kind] }, {
 		on_stdout = handle_stdout,
 		on_stderr = handle_stdout,
 	})
@@ -32,27 +35,40 @@ local create_window = function()
 end
 
 local runners = {
-	["lua"] = { is_interpreted = true, command = "lua", run = run_file },
-	["javascript"] = { is_interpreted = true, command = "node", run = run_file },
+	["lua"] = { kind = kind.SINGLE_FILE, command = "lua" },
+	["javascript"] = { kind = kind.SINGLE_FILE, command = "node" },
 }
 
-M.run_current_cwd = function()
+local run_current_cwd = function()
 	local runner = runners[vim.bo.filetype]
 	if not runner then
 		print("You didn't teach me how to run it")
 		return
 	end
 	create_window()
-	runner.run(runner.command)
+	run(runner)
+end
+
+local close = function()
+	vim.fn.jobstop(job)
+	if vim.api.nvim_buf_is_loaded(output) then
+		vim.api.nvim_win_close(win, true)
+		vim.api.nvim_buf_delete(output, { force = true })
+	end
 end
 
 M.setup = function(opts)
-	print("hello !", opts)
+	vim.api.nvim_create_user_command("FreeRun", function()
+		run_current_cwd()
+	end, {})
+
+	vim.api.nvim_create_user_command("FreeStop", function()
+		close()
+	end, {})
+
+	if opts.runners then
+		runners.insert(opts.runners)
+	end
 end
 
-M.close = function()
-	vim.fn.jobstop(job)
-end
-
-print("lol")
 return M
