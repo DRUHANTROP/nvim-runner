@@ -12,29 +12,38 @@ local output, job, win = -1, -1, -1
 
 local handle_stdout = function(_, data)
 	if data then
+		vim.api.nvim_set_option_value("readonly", false, { buf = output })
 		vim.api.nvim_buf_set_lines(output, -1, -1, false, data)
+		vim.api.nvim_set_option_value("readonly", true, { buf = output })
 	end
 end
 
 local run = function(runner)
+	vim.api.nvim_set_option_value("readonly", false, { buf = output })
 	vim.api.nvim_buf_set_lines(output, 0, -1, false, { "OUTPUT: " })
+	vim.api.nvim_set_option_value("readonly", true, { buf = output })
 
-	-- local path = target[runner.kind]()
 	job = vim.fn.jobstart({ runner.command, target[runner.kind]() }, {
 		on_stdout = handle_stdout,
 		on_stderr = handle_stdout,
 	})
-	vim.api.nvim_set_current_win(win)
 end
 
 local create_window = function()
 	local buf = vim.api.nvim_create_buf(false, true)
+	local width, height = vim.api.nvim_win_get_width(0), vim.api.nvim_win_get_height(0)
 	local opts = {
-		split = "right",
-		win = 0,
+		relative = "editor",
+		width = math.floor(width / 2),
+		height = height,
+		col = math.floor(width / 2),
+		row = 1,
+		anchor = "NW",
+		style = "minimal",
 	}
 	win = vim.api.nvim_open_win(buf, false, opts)
 	output = buf
+	vim.api.nvim_set_option_value("readonly", true, { buf = output })
 end
 
 local runners = {
