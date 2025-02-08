@@ -1,12 +1,7 @@
 local M = {}
-local kind = { SINGLE_FILE = 1, CWD = 2, CUSTOM = 3 }
-local target = {
-	[1] = function()
-		return vim.fn.expand("%")
-	end,
-	[2] = vim.fn.getcwd,
-	[3] = function() end,
-}
+local default_target = function()
+	return vim.fn.expand("%")
+end
 
 local output, job, win = -1, -1, -1
 
@@ -23,7 +18,7 @@ local run = function(runner)
 	vim.api.nvim_buf_set_lines(output, 0, -1, false, { "OUTPUT: " })
 	vim.api.nvim_set_option_value("readonly", true, { buf = output })
 
-	job = vim.fn.jobstart({ runner.command, target[runner.kind]() }, {
+	job = vim.fn.jobstart({ runner.command, runner.target() }, {
 		on_stdout = handle_stdout,
 		on_stderr = handle_stdout,
 	})
@@ -47,8 +42,9 @@ local create_window = function()
 end
 
 local runners = {
-	["lua"] = { kind = kind.SINGLE_FILE, command = "lua" },
-	["javascript"] = { kind = kind.SINGLE_FILE, command = "node" },
+	["lua"] = { target = default_target, command = "lua" },
+	["javascript"] = { target = default_target, command = "node" },
+	["python"] = { target = default_target, command = "python3" },
 }
 
 local close = function()
@@ -79,6 +75,9 @@ M.setup = function(opts)
 	end, {})
 
 	for k, v in pairs(opts.runners) do
+		if not v.target then
+			v.target = default_target
+		end
 		runners[k] = v
 	end
 end
